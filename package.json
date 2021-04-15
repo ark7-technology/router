@@ -1,0 +1,34 @@
+{
+  "name": "@ark7/router",
+  "version": "1.0.0",
+  "description": "Ark7 Router layer framework.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ark7-technology/router.git"
+  },
+  "keywords": [
+    "Router",
+    "Ark7"
+  ],
+  "author": "yz@ark7.com",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ark7-technology/router/issues"
+  },
+  "homepage": "https://github.com/ark7-technology/router#readme",
+  "devDependencies": {
+    "@types/mocha": "^8.2.2",
+    "@types/should": "^13.0.0",
+    "gulp": "^4.0.2",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "mocha": "^8.3.2",
+    "should": "^13.2.3",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  }
+}
