@@ -4,73 +4,45 @@ import * as _ from 'underscore';
 import * as Router from 'koa-router';
 
 import {
+  A7ControllerMetadata,
+  A7HandlerMetadata,
   IHandlerOptions,
-  IA7ControllerMetadata,
   METADATA_KEY,
   Method,
 } from './declarations';
-import { compose, isPromise } from './utils';
+import { isPromise } from './utils';
 
 /**
  * A decorator to config a router class.
  */
 export function Config(options: Router.IRouterOptions) {
   return (cls: any) => {
-    const meta: IA7ControllerMetadata = Reflect.getMetadata(METADATA_KEY, cls) || {
-      middlewares: [],
-      handlers: {},
-      routerOptions: {},
-    };
-
-    _.extend(meta.routerOptions, options);
-
-    Reflect.defineMetadata(METADATA_KEY, meta, cls);
+    const meta = A7ControllerMetadata.getMetadata(cls);
+    meta.extendOptions(options);
+    meta.defineMetadata(cls);
   };
 }
 
 export function Handler(options: IHandlerOptions = {}): PropertyDecorator {
   return (target: any, propertyKey: string) => {
     const cls = target.constructor;
-
-    const meta: IA7ControllerMetadata = Reflect.getMetadata(METADATA_KEY, cls) || {
-      middlewares: [],
-      handlers: {},
-      routerOptions: {},
-    };
-
-    if (meta.handlers[propertyKey] == null) {
-      meta.handlers[propertyKey] = {
-        method: Method.GET,
-        path: '/',
-        middleware: null,
-      };
-    }
-
-    const m = meta.handlers[propertyKey];
+    const meta = A7ControllerMetadata.getMetadata(cls);
+    const handler = meta.getOrCreateHandler(propertyKey, '/');
 
     if (options.middleware) {
-      const middleware = _.isArray(options.middleware)
-        ? compose(options.middleware)
-        : options.middleware;
-
-      m.middleware =
-        m.middleware == null ? middleware : compose([middleware, m.middleware]);
+      handler.pushMiddlewaresInFront(_.flatten([options.middleware]));
     }
 
     if (options.method) {
-      m.method = options.method;
+      handler.method = options.method;
     }
 
     if (options.path) {
-      m.path = options.path;
+      handler.path = options.path;
     }
 
     if (options.name) {
-      m.name = options.name;
-    }
-
-    if (m.path == null) {
-      m.path = '/';
+      handler.name = options.name;
     }
 
     Reflect.defineMetadata(METADATA_KEY, meta, cls);
@@ -134,11 +106,11 @@ export function Middleware(
     target: any,
     propertyKey?: string,
     descriptor?: TypedPropertyDescriptor<Router.IMiddleware>,
-  ) => {
+  ): any => {
     if (propertyKey == null) {
       buildConstructorMiddleware(target, middlewares as Router.IMiddleware[]);
     } else {
-      buildPropertyMiddleware(
+      return buildPropertyMiddleware(
         target,
         propertyKey,
         middlewares as Router.IMiddleware[],
@@ -266,17 +238,24 @@ function buildConstructorMiddleware(
   cls: any,
   middlewares: Router.IMiddleware[],
 ) {
-  const meta: IA7ControllerMetadata = _.clone(
-    Reflect.getMetadata(METADATA_KEY, cls) || {
-      middlewares: [],
-      handlers: {},
-      routerOptions: {},
+  A7ControllerMetadata.getMetadata(cls)
+    .clone()
+    .pushMiddlewaresInFront(middlewares)
+    .defineMetadata(cls);
+}
+
+function getDescription(handler: A7HandlerMetadata) {
+  return {
+    get: function () {
+      return handler.composedMiddleware;
     },
-  );
-
-  meta.middlewares = _.union(middlewares, meta.middlewares);
-
-  Reflect.defineMetadata(METADATA_KEY, meta, cls);
+    set: function (fn: Router.IMiddleware) {
+      handler.pushMiddlewaresBack(_.flatten([fn]));
+    },
+    enumerable: false,
+    configurable: true,
+    _a7: true,
+  };
 }
 
 function buildPropertyMiddleware(
@@ -286,33 +265,19 @@ function buildPropertyMiddleware(
   descriptor: TypedPropertyDescriptor<Router.IMiddleware>,
 ) {
   const cls = target.constructor;
-  const meta: IA7ControllerMetadata = _.clone(
-    Reflect.getMetadata(METADATA_KEY, cls) || {
-      middlewares: [],
-      handlers: {},
-      routerOptions: {},
-    },
-  );
+  const meta = A7ControllerMetadata.getMetadata(cls).clone();
 
-  if (meta.handlers[propertyKey] == null) {
-    meta.handlers[propertyKey] = {
-      method: Method.GET,
-      path: null,
-      middleware: null,
-    };
+  const handler = meta.getOrCreateHandler(propertyKey);
+
+  handler.pushMiddlewaresInFront(middlewares);
+
+  if (descriptor != null && !(descriptor as any)._a7) {
+    handler.pushMiddlewaresBack([descriptor.value]);
   }
 
-  if (descriptor != null) {
-    descriptor.value = compose(middlewares.concat(descriptor.value));
-  } else {
-    const m = meta.handlers[propertyKey];
+  meta.defineMetadata(cls);
 
-    if (m.middleware == null) {
-      m.middleware = compose(middlewares);
-    } else {
-      m.middleware = compose(middlewares.concat(m.middleware));
-    }
+  if (!(descriptor as any)?._a7) {
+    return getDescription(handler);
   }
-
-  Reflect.defineMetadata(METADATA_KEY, meta, cls);
 }

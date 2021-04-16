@@ -3,20 +3,16 @@ import 'reflect-metadata';
 import * as _ from 'underscore';
 import * as Router from 'koa-router';
 
-import { IA7ControllerMetadata, METADATA_KEY } from './declarations';
-import { compose } from './utils';
+import { A7ControllerMetadata, METADATA_KEY } from './declarations';
 
+/**
+ * Base class of the Ark7 Controller.
+ */
 export class A7Controller {
-  private $router: Router;
-
   get $koaRouter(): Router {
-    if (this.$router != null) {
-      return this.$router;
-    }
-
     const constructor = this.constructor;
 
-    const meta: IA7ControllerMetadata = Reflect.getMetadata(
+    const meta: A7ControllerMetadata = Reflect.getMetadata(
       METADATA_KEY,
       constructor,
     );
@@ -25,34 +21,7 @@ export class A7Controller {
       return null;
     }
 
-    this.$router = new Router(meta.routerOptions);
-
-    if (!_.isEmpty(meta.middlewares)) {
-      this.$router.use(compose(meta.middlewares));
-    }
-
-    for (const handler in meta.handlers) {
-      const handlerMeta = meta.handlers[handler];
-
-      let method = (this as any)[handler] || _.identity;
-
-      if (handlerMeta.middleware != null) {
-        method = compose([handlerMeta.middleware, method]);
-        (this as any)[handler] = method;
-      }
-
-      if (handlerMeta.path != null) {
-        (this.$router as any)[handlerMeta.method](
-          handlerMeta.name
-            ? handlerMeta.name
-            : `${constructor.name}.${handler}`,
-          handlerMeta.path,
-          method.bind(this),
-        );
-      }
-    }
-
-    return this.$router;
+    return meta.$koaRouter;
   }
 
   get $koaRouterUseArgs(): [Router.IMiddleware, Router.IMiddleware] {

@@ -1,10 +1,14 @@
-import * as should from 'should';
+import 'should';
 
 import { A7Controller, Get, Middleware } from '../src';
 
 class Controller extends A7Controller {
-  @Middleware(async (ctx: any, next: () => Promise<void>) => {
-    if (this != null) {
+  @Middleware(async function (
+    this: Controller,
+    ctx: any,
+    next: () => Promise<void>,
+  ) {
+    if (this != null && this instanceof Controller) {
       ctx.values.push('m1');
     }
     await next();
@@ -53,6 +57,14 @@ class Controller extends A7Controller {
       ctx.values.push('m7');
     }
   }
+
+  @Middleware(Controller.prototype.m4)
+  @Middleware(Controller.prototype.m5)
+  async m8(ctx: any) {
+    if (this != null) {
+      ctx.values.push('m8');
+    }
+  }
 }
 
 const controller = new Controller();
@@ -70,5 +82,23 @@ describe('koa.controller', () => {
     const ctx: any = { values: [], request: {} };
     await controller.m5(ctx);
     ctx.values.should.deepEqual(['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7']);
+  });
+
+  it('should create with nested middlewares', async () => {
+    const ctx: any = { values: [], request: {} };
+    await controller.m8(ctx);
+    ctx.values.should.deepEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm8',
+      'm6',
+      'm7',
+    ]);
   });
 });
