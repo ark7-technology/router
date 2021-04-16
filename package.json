@@ -4,7 +4,9 @@
   "description": "Ark7 Router layer framework.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rm -rf dist && ./node_modules/.bin/gulp build",
+    "prepublish": "npm test && npm run build",
+    "test": "NODE_ENV=test node_modules/.bin/ts-mocha --trace-warnings test/**/*.ts"
   },
   "repository": {
     "type": "git",
@@ -28,7 +30,29 @@
     "gulp-typescript": "^6.0.0-alpha.1",
     "mocha": "^8.3.2",
     "should": "^13.2.3",
+    "ts-mocha": "^8.0.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
+  },
+  "importSort": {
+    ".js, .jsx, .es6, .es": {
+      "parser": "babylon",
+      "style": "renke"
+    },
+    ".ts, .tsx": {
+      "parser": "typescript",
+      "style": "renke"
+    }
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.5",
+    "@types/koa-router": "^7.4.2",
+    "@types/object-path": "^0.11.0",
+    "@types/underscore": "^1.11.1",
+    "debug": "^4.3.1",
+    "koa-router": "^10.0.0",
+    "object-path": "^0.11.5",
+    "reflect-metadata": "^0.1.13",
+    "underscore": "^1.13.1"
   }
 }

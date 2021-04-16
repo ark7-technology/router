@@ -3,7 +3,17 @@ var ts = require('gulp-typescript');
 var tsProject = ts.createProject('tsconfig.json');
 var sourcemaps = require('gulp-sourcemaps');
 
-gulp.task('default', function() {
+gulp.task('resources', () => {
+  return gulp
+    .src([
+      '*.json',
+      'LICENSE',
+      'README.md',
+    ])
+    .pipe(gulp.dest('dist'));
+});
+
+gulp.task('build-ts', () => {
   var tsResult = gulp
     .src('src/**/*.ts')
     .pipe(sourcemaps.init())
@@ -17,5 +27,7 @@ gulp.task('default', function() {
         },
       }),
     )
-    .pipe(gulp.dest('.'));
+    .pipe(gulp.dest('dist'));
 });
+
+gulp.task('build', gulp.series('resources', 'build-ts'));
