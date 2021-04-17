@@ -10,18 +10,12 @@ import { A7ControllerMetadata, METADATA_KEY } from './declarations';
  */
 export class A7Controller {
   get $koaRouter(): Router {
-    const constructor = this.constructor;
-
     const meta: A7ControllerMetadata = Reflect.getMetadata(
       METADATA_KEY,
-      constructor,
+      this.constructor,
     );
 
-    if (meta == null) {
-      return null;
-    }
-
-    return meta.$koaRouter;
+    return meta?.$koaRouter;
   }
 
   get $koaRouterUseArgs(): [Router.IMiddleware, Router.IMiddleware] {

@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import * as _ from 'underscore';
 import * as Router from 'koa-router';
 
+import { A7Controller } from './controller';
 import { compose } from './utils';
 
 export enum Method {
@@ -10,16 +11,6 @@ export enum Method {
   POST = 'post',
   PUT = 'put',
   DELETE = 'delete',
-}
-
-/**
- * Options to define a handler.
- */
-export interface IHandlerOptions {
-  method?: Method;
-  path?: string;
-  name?: string;
-  middleware?: Router.IMiddleware | Router.IMiddleware[];
 }
 
 /**
@@ -53,24 +44,42 @@ export class A7ControllerMetadata {
     }
 
     for (const subsidiary of this.subsidiaries) {
-      if (subsidiary instanceof A7HandlerMetadata) {
-        const handlerMeta = subsidiary;
-        const name = handlerMeta.name;
+      const name = subsidiary.name;
 
-        let method = (this as any)[name] || _.identity;
+      switch (subsidiary.type) {
+        case A7ControllerSubsidiaryType.HANDLER:
+          const handlerMeta = subsidiary;
 
-        if (!_.isEmpty(handlerMeta.middlewares)) {
-          method = compose([...handlerMeta.middlewares, method]);
-          (this as any)[name] = method;
-        }
+          let method = (this as any)[name] || _.identity;
 
-        if (handlerMeta.path != null) {
-          (this.$_router as any)[handlerMeta.method](
-            handlerMeta.name,
-            handlerMeta.path,
-            method.bind(this),
-          );
-        }
+          if (!_.isEmpty(handlerMeta.middlewares)) {
+            method = compose([...handlerMeta.middlewares, method]);
+            (this as any)[name] = method;
+          }
+
+          if (handlerMeta.path != null) {
+            (this.$_router as any)[handlerMeta.method](
+              handlerMeta.name,
+              handlerMeta.path,
+              method.bind(this),
+            );
+          }
+          break;
+
+        case A7ControllerSubsidiaryType.SUB_CONTROLLER:
+          const router = new Router({
+            prefix: subsidiary.path,
+          });
+
+          if (!_.isEmpty(subsidiary.middlewares)) {
+            router.use(compose(subsidiary.middlewares));
+          }
+
+          const controller = new subsidiary.cls();
+          router.use(...controller.$koaRouterUseArgs);
+
+          this.$_router.use(router.routes(), router.allowedMethods());
+          break;
       }
     }
 
@@ -104,14 +113,11 @@ export class A7ControllerMetadata {
     return _.find(this.subsidiaries, (s) => s.name === name);
   }
 
-  getOrCreateHandler(name: string, path?: string): A7HandlerMetadata {
+  getOrCreateSubsidiary(name: string, path?: string): A7ControllerSubsidiary {
     let subsidiary = this.getSubsidiaryByName(name);
-    if (subsidiary != null && !(subsidiary instanceof A7HandlerMetadata)) {
-      throw new Error(`Subsidiary ${name} is not a handler`);
-    }
 
     if (subsidiary == null) {
-      subsidiary = new A7HandlerMetadata(name);
+      subsidiary = new A7ControllerSubsidiary(name);
       this.subsidiaries.push(subsidiary);
     }
 
@@ -119,14 +125,22 @@ export class A7ControllerMetadata {
       subsidiary.path = path;
     }
 
-    return subsidiary as A7HandlerMetadata;
+    return subsidiary;
   }
 }
 
-export class A7HandlerMetadata {
-  method: Method;
-  path: string;
+export enum A7ControllerSubsidiaryType {
+  HANDLER = 'HANDLER',
+  SUB_CONTROLLER = 'SUB_CONTROLLER',
+}
+
+export class A7ControllerSubsidiary {
+  type?: A7ControllerSubsidiaryType;
+  path?: string;
   middlewares: Router.IMiddleware[] = [];
+
+  method?: Method;
+  cls?: typeof A7Controller;
 
   constructor(public name: string) {}
 
@@ -144,14 +158,5 @@ export class A7HandlerMetadata {
     return this;
   }
 }
-
-export class SubControllerMetadata {
-  path?: string;
-  cls: any;
-
-  constructor(public name: string) {}
-}
-
-export type A7ControllerSubsidiary = A7HandlerMetadata | SubControllerMetadata;
 
 export const METADATA_KEY = 'ark7:router:metadata';

@@ -1,6 +1,14 @@
 import 'should';
 
-import { A7Controller, Get, Middleware } from '../src';
+import { A7Controller, Config, Get, Middleware, SubController } from '../src';
+
+@Config({
+  prefix: '/abcd',
+})
+class NestedController extends A7Controller {
+  @Get('/foo')
+  async foo() {}
+}
 
 class Controller extends A7Controller {
   @Middleware(async function (
@@ -65,6 +73,12 @@ class Controller extends A7Controller {
       ctx.values.push('m8');
     }
   }
+
+  @SubController({
+    path: '/bar',
+  })
+  @Middleware(Controller.prototype.m7)
+  nested = NestedController;
 }
 
 const controller = new Controller();
@@ -100,5 +114,12 @@ describe('koa.controller', () => {
       'm6',
       'm7',
     ]);
+  });
+
+  it('should create nested controller', async () => {
+    controller.$koaRouter.match('/bar/abcd/foo', 'GET').route.should.be.true();
+    controller.$koaRouter
+      .match('/bar/abcd/foo2', 'GET')
+      .route.should.be.false();
   });
 });
