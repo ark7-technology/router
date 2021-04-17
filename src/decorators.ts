@@ -10,6 +10,7 @@ import {
   METADATA_KEY,
   Method,
 } from './declarations';
+import { a7RouterConfig } from './global-config';
 import { isPromise } from './utils';
 
 /**
@@ -100,7 +101,10 @@ export function Delete(
 export function Middleware(
   middlewares: Router.IMiddleware | Router.IMiddleware[],
 ): ClassDecorator & PropertyDecorator {
-  middlewares = _.chain([middlewares]).flatten().value();
+  middlewares = _.chain([middlewares])
+    .flatten()
+    .map(a7RouterConfig.middlewareMapper)
+    .value();
 
   return (
     target: any,
