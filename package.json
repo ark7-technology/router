@@ -1,6 +1,6 @@
 {
   "name": "@ark7/router",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Ark7 Router layer framework.",
   "main": "index.js",
   "scripts": {
