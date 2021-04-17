@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "rm -rf dist && ./node_modules/.bin/gulp build",
-    "prepublish": "npm test && npm run build",
+    "release": "npm test && npm run build && cd dist && npm publish",
     "test": "NODE_ENV=test node_modules/.bin/ts-mocha --trace-warnings test/**/*.ts"
   },
   "repository": {
