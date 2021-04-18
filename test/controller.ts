@@ -10,6 +10,11 @@ class NestedController extends A7Controller {
   async foo() {}
 }
 
+async function test(_ctx: any, next: any) {
+  await next();
+}
+
+@Middleware(test)
 class Controller extends A7Controller {
   @Middleware(async function (
     this: Controller,

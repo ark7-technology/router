@@ -97,7 +97,7 @@ function buildPropertyMiddleware(
 
   meta.defineMetadata(cls);
 
-  if (descriptor != null && !(descriptor as any)._a7) {
+  if (!(descriptor as any)?._a7) {
     return getDescription(subsidiary);
   }
 }
