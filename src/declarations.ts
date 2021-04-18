@@ -17,8 +17,6 @@ export enum Method {
  * Metadata injected to the A7Controller class.
  */
 export class A7ControllerMetadata {
-  private $_router: Router;
-
   constructor(
     /** Global middlewares applied to all the handlers. */
     private middlewares: Router.IMiddleware[] = [],
@@ -32,36 +30,21 @@ export class A7ControllerMetadata {
     return Reflect.getMetadata(METADATA_KEY, cls) ?? new A7ControllerMetadata();
   }
 
-  get $koaRouter(): Router {
-    if (this.$_router != null) {
-      return this.$_router;
-    }
-
-    this.$_router = new Router(this.routerOptions);
+  koaRouter(controller: A7Controller): Router {
+    const koaRouter = new Router(this.routerOptions);
 
     if (!_.isEmpty(this.middlewares)) {
-      this.$_router.use(compose(this.middlewares));
+      koaRouter.use(compose(this.middlewares));
     }
 
     for (const subsidiary of this.subsidiaries) {
-      const name = subsidiary.name;
-
       switch (subsidiary.type) {
         case A7ControllerSubsidiaryType.HANDLER:
-          const handlerMeta = subsidiary;
-
-          let method = (this as any)[name] || _.identity;
-
-          if (!_.isEmpty(handlerMeta.middlewares)) {
-            method = compose([...handlerMeta.middlewares, method]);
-            (this as any)[name] = method;
-          }
-
-          if (handlerMeta.path != null) {
-            (this.$_router as any)[handlerMeta.method](
-              handlerMeta.name,
-              handlerMeta.path,
-              method.bind(this),
+          if (subsidiary.path != null) {
+            (koaRouter as any)[subsidiary.method](
+              subsidiary.name,
+              subsidiary.path,
+              subsidiary.composedMiddleware.bind(controller),
             );
           }
           break;
@@ -72,18 +55,18 @@ export class A7ControllerMetadata {
           });
 
           if (!_.isEmpty(subsidiary.middlewares)) {
-            router.use(compose(subsidiary.middlewares));
+            router.use(subsidiary.composedMiddleware.bind(controller));
           }
 
-          const controller = new subsidiary.cls();
-          router.use(...controller.$koaRouterUseArgs);
+          const subController = new subsidiary.cls();
+          router.use(...subController.$koaRouterUseArgs);
 
-          this.$_router.use(router.routes(), router.allowedMethods());
+          koaRouter.use(router.routes(), router.allowedMethods());
           break;
       }
     }
 
-    return this.$_router;
+    return koaRouter;
   }
 
   extendOptions(options: Router.IRouterOptions): this {
