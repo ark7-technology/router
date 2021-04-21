@@ -13,11 +13,19 @@ export enum Method {
   DELETE = 'delete',
 }
 
+export function injectHandler(handler: string) {
+  return async (ctx: any, next: any) => {
+    ctx.handler = handler;
+    await next();
+  };
+}
+
 /**
  * Metadata injected to the A7Controller class.
  */
 export class A7ControllerMetadata {
   constructor(
+    private className: string,
     /** Global middlewares applied to all the handlers. */
     private middlewares: Router.IMiddleware[] = [],
     /** Subsidiaries under the current controller. */
@@ -27,7 +35,10 @@ export class A7ControllerMetadata {
   ) {}
 
   static getMetadata(cls: any): A7ControllerMetadata {
-    return Reflect.getMetadata(METADATA_KEY, cls) ?? new A7ControllerMetadata();
+    return (
+      Reflect.getMetadata(METADATA_KEY, cls) ??
+      new A7ControllerMetadata(cls.name)
+    );
   }
 
   koaRouter(controller: A7Controller): Router {
@@ -44,7 +55,10 @@ export class A7ControllerMetadata {
             (koaRouter as any)[subsidiary.method](
               subsidiary.name,
               subsidiary.path,
-              subsidiary.composedMiddleware.bind(controller),
+              compose([
+                injectHandler(`${this.className}.${subsidiary.name}`),
+                subsidiary.composedMiddleware,
+              ]).bind(controller),
             );
           }
           break;
@@ -86,6 +100,7 @@ export class A7ControllerMetadata {
 
   clone(): A7ControllerMetadata {
     return new A7ControllerMetadata(
+      this.className,
       _.clone(this.middlewares),
       _.clone(this.subsidiaries),
       _.clone(this.routerOptions),
