@@ -1,6 +1,14 @@
 import 'should';
 
-import { A7Controller, Config, Get, Middleware, SubController } from '../src';
+import {
+  A7Controller,
+  Config,
+  Get,
+  Middleware,
+  SubController,
+  Tee,
+  TeePost,
+} from '../src';
 
 @Config({
   prefix: '/abcd',
@@ -49,6 +57,8 @@ class Controller extends A7Controller {
   }
 
   @Get('/')
+  @Controller.m10()
+  @Controller.m9()
   @Middleware(Controller.prototype.m4)
   @Middleware(Controller.prototype.m6)
   m5 = async (ctx: any) => {
@@ -84,6 +94,17 @@ class Controller extends A7Controller {
   })
   @Middleware(Controller.prototype.m7)
   nested = NestedController;
+
+  static m9() {
+    return TeePost((ctx: any) => {
+      ctx.values.push('m9');
+    });
+  }
+
+  static m10 = () =>
+    TeePost(async (ctx: any) => {
+      ctx.values.push('m10');
+    });
 }
 
 const controller = new Controller();
@@ -100,7 +121,17 @@ describe('koa.controller', () => {
   it('should create with empty middlewares', async () => {
     const ctx: any = { values: [], request: {} };
     await controller.m5(ctx);
-    ctx.values.should.deepEqual(['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7']);
+    ctx.values.should.deepEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm5',
+      'm6',
+      'm7',
+      'm9',
+      'm10',
+    ]);
   });
 
   it('should create with nested middlewares', async () => {
@@ -118,6 +149,8 @@ describe('koa.controller', () => {
       'm8',
       'm6',
       'm7',
+      'm9',
+      'm10',
     ]);
   });
 

@@ -86,23 +86,23 @@ export function Check(
  * A Tee middleware that helps execute a side function.
  * Usage:
  *
- *   @Tee((ctx: Router.IRouterContext) => console.log(ctx.path))
+ *   @Tee((ctx) => console.log(ctx.path))
  *
  * @param fn - The side function to execute.
  * @param opts.post - specifies run tee after returned.
  */
-export function Tee(
-  fn: (ctx: Router.IRouterContext, next: () => any) => void | Promise<void>,
+export function Tee<T extends Router.IRouterContext>(
+  fn: (ctx: T, next: () => any) => void | Promise<void>,
   opts: TeeOptions = {},
 ) {
-  async function process(ctx: Router.IRouterContext) {
+  async function process(ctx: T) {
     const value = fn(ctx, () => {});
     if (isPromise(value)) {
       await value;
     }
   }
 
-  return Middleware(async (ctx: Router.IRouterContext, next: () => any) => {
+  return Middleware(async (ctx: T, next: () => any) => {
     if (!opts.post) {
       await process(ctx);
     }
@@ -113,10 +113,10 @@ export function Tee(
   });
 }
 
-export function TeePost(
-  fn: (ctx: Router.IRouterContext, next: () => any) => void | Promise<void>,
+export function TeePost<T extends Router.IRouterContext>(
+  fn: (ctx: T, next: () => any) => void | Promise<void>,
 ) {
-  return Tee(fn, { post: true });
+  return Tee<T>(fn, { post: true });
 }
 
 export interface TeeOptions {
