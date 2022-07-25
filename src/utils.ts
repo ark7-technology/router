@@ -7,7 +7,11 @@ const d = debug('ark7:router:utils');
  * Compose `middleware` returning a fully valid middleware comprised of all
  * those which are passed.
  */
-export function compose(middleware: Function[]) {
+export function compose(middleware: Function | Function[]): Function {
+  if (_.isFunction(middleware)) {
+    return middleware;
+  }
+
   if (!Array.isArray(middleware)) {
     throw new TypeError('Middleware stack must be an array!');
   }
@@ -38,7 +42,7 @@ export function compose(middleware: Function[]) {
 
       index = i;
 
-      const fn = i === middleware.length ? next : middleware[i];
+      const fn = i === middleware.length ? next : (middleware as Function[])[i];
 
       if (!fn) return Promise.resolve();
 

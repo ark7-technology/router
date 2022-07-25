@@ -1,7 +1,7 @@
 import * as Router from 'koa-router';
 
 import { Middleware } from './decorators';
-import { isPromise } from './utils';
+import { compose, isPromise } from './utils';
 
 /**
  * A IF middleware that helps a branch checking.  Usage:
@@ -21,21 +21,29 @@ import { isPromise } from './utils';
  */
 export function If(
   predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
-  ifClause: Router.IMiddleware,
-  elseClause?: Router.IMiddleware,
+  ifClause: Router.IMiddleware | Router.IMiddleware[],
+  elseClause?: Router.IMiddleware | Router.IMiddleware[],
 ) {
-  return Middleware(async (ctx: Router.IRouterContext, next: () => any) => {
+  return Middleware(_if(predictor, ifClause, elseClause));
+}
+
+export function _if(
+  predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
+  ifClause: Router.IMiddleware | Router.IMiddleware[],
+  elseClause?: Router.IMiddleware | Router.IMiddleware[],
+) {
+  return async (ctx: Router.IRouterContext, next: () => any) => {
     const value = predictor(ctx);
     const boolValue = isPromise(value) ? await value : value;
 
     if (boolValue) {
-      await ifClause(ctx, next);
+      await compose(ifClause)(ctx, next);
     } else if (elseClause) {
-      await elseClause(ctx, next);
+      await compose(elseClause)(ctx, next);
     } else {
       await next();
     }
-  });
+  };
 }
 
 /**
@@ -47,18 +55,25 @@ export function If(
  */
 export function When(
   predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
-  whenClause: Router.IMiddleware,
+  whenClause: Router.IMiddleware | Router.IMiddleware[],
 ) {
-  return Middleware(async (ctx: Router.IRouterContext, next: () => any) => {
+  return Middleware(_when(predictor, whenClause));
+}
+
+export function _when(
+  predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
+  whenClause: Router.IMiddleware | Router.IMiddleware[],
+) {
+  return async (ctx: Router.IRouterContext, next: () => any) => {
     const value = predictor(ctx);
     const boolValue = isPromise(value) ? await value : value;
 
     if (boolValue && whenClause) {
-      await whenClause(ctx, () => Promise.resolve({}));
+      await compose(whenClause)(ctx, () => Promise.resolve({}));
     }
 
     await next();
-  });
+  };
 }
 
 /**
@@ -72,14 +87,20 @@ export function When(
 export function Check(
   predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
 ) {
-  return Middleware(async (ctx: Router.IRouterContext, next: () => any) => {
+  return Middleware(_check(predictor));
+}
+
+export function _check(
+  predictor: (ctx: Router.IRouterContext) => boolean | Promise<boolean>,
+) {
+  return async (ctx: Router.IRouterContext, next: () => any) => {
     const value = predictor(ctx);
     const boolValue = isPromise(value) ? await value : value;
 
     if (boolValue) {
       await next();
     }
-  });
+  };
 }
 
 /**
