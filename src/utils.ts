@@ -1,4 +1,5 @@
 import * as _ from 'underscore';
+import * as Router from 'koa-router';
 import debug from 'debug';
 
 const d = debug('ark7:router:utils');
@@ -7,7 +8,9 @@ const d = debug('ark7:router:utils');
  * Compose `middleware` returning a fully valid middleware comprised of all
  * those which are passed.
  */
-export function compose(middleware: Function | Function[]): Function {
+export function compose(
+  middleware: Router.IMiddleware | Router.IMiddleware[],
+): Router.IMiddleware {
   if (_.isFunction(middleware)) {
     return middleware;
   }
