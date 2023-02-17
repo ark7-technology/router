@@ -49,6 +49,21 @@ export class A7ControllerMetadata {
     }
 
     for (const subsidiary of this.subsidiaries) {
+      /**
+       * ES2022 overwrite properties on the prototypes, so reset the value here.
+       */
+      const name = subsidiary.name;
+      const prototype = Object.getPrototypeOf(controller);
+
+      if (
+        Object.getOwnPropertyNames(controller).includes(name) &&
+        Object.getOwnPropertyNames(prototype).includes(name)
+      ) {
+        const value = (controller as any)[name];
+        delete (controller as any)[name];
+        (controller as any)[name] = value;
+      }
+
       switch (subsidiary.type) {
         case A7ControllerSubsidiaryType.HANDLER:
           if (subsidiary.path != null) {
