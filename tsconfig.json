@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "lib": ["es2017", "dom"],
+    "lib": ["es2022", "dom"],
     "allowSyntheticDefaultImports": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "sourceMap": true,
     "declaration": true,
     "noImplicitAny": true,
-    "target": "es2017",
+    "target": "es2022",
     "typeRoots": ["node_modules/@types"],
     "plugins": [{
       "transform": "./dist/transformer"
